@@ -1,0 +1,868 @@
+import mysql.connector as m
+db=m.connect(host='localhost',user='root',passwd='dhars',database='menagerie')
+print(db.is_connected())
+c=db.cursor()
+def CREATETABLE_AMAZONPRIME():
+    s='create table amazonprime(PLANS varchar(30),MEMBERSHIPPRICE integer,VALIDITY varchar(30));'
+    c.execute(s)
+    for k in range(3):
+        p=input("Enter the plans:")
+        mp=int(input("Enter the price of that plan:"))
+        v=input("Enter validity:")
+        s='insert into amazonprime values(%s,%s,%s);'
+        c.execute(s,(p,mp,v))
+        db.commit()
+    
+def CREATETABLE_NETFLIX():
+    s='create table netflix(PLANS varchar(30),PRICEMONTHLY integer,NOOFSCREENS integer,typeofdevice varchar(80));'
+    c.execute(s)
+    for k in range(4):
+        p=input('Enter type of plan:')
+        pr=int(input("Enter price of that plan"))
+        n=int(input("Enter no. of screens:"))
+        t=input("Enter type of device:")
+        s='insert into netflix values(%s,%s,%s,%s);'
+        c.execute(s,(p,pr,n,t))
+        db.commit()
+def CREATETABLE_SUBSCRIBERS():
+    '''
+    s='create table subscribers(USERNAME varchar(15),USER_ID varchar(40),EMAIL_ID varchar(30), PLATFORM varchar(20),PLAN varchar(30),VALIDITY date);'
+    c.execute(s)
+    '''
+    for k in range(3):
+        n=input("Enter the subscriber name:")
+        id=input("Enter user id:")
+        em=input("Enter the subscriber email id:")
+        ott=input("Enter subcriber of which ott?")
+        plans=input("Enter the subscriber plans:")
+        validity=input("Enter validity:")
+        sq='insert into subscribers values(%s,%s,%s,%s,%s,%s);'
+        c.execute(sq,(n,id,em,ott,plans,validity,))
+        db.commit()
+
+def CREATETABLE_HOTSTAR():
+    s2='create table hotstar(DISNEYHOTSTAR_PLANS varchar(40),PRICE varchar(20),NUMBEROFDEVICES INT,RESOLTIONSUPPORTED VARCHAR(8));'
+    c.execute(s2)
+    for k in range(3):
+        p=input("Enter the plan:")
+        pr=input("Enter the price/period:")
+        n=int(input("Enter number no of devices:"))
+        r=input("Enter resolution supported:")
+        c.execute('insert into hotstar values(%s,%s,%s,%s)',(p,pr,n,r))
+        db.commit()
+
+def CREATE_ZEE_TABLE():
+    s3='create table zee(PLAN varchar(30),PRICE int,DURATION varchar(20),Screens int);'
+    c.execute(s3)
+    for k in range(2):
+        p=input("Enter the plan:")
+        pr=int(input("Enter the price:"))
+        d=input("Enter the duration:")
+        s=int(input("Enter the screen:"))
+        c.execute('insert into zee values(%s,%s,%s,%s);',(p,pr,d,s))
+        db.commit()
+
+def view_previousplan(id):
+    c.execute('select plan from subscribers where user_id=%s',(id,))
+    k=c.fetchall()
+    for j in k:
+        print("Your previous plan is:",j)
+def change_userplan(id):
+    plan=input("Enter which plan you want to change:")
+    c.execute('update subscribers set plan=%s where user_id=%s;',(plan,id))
+    db.commit()
+    print("Successfully updated\nAfter updation")
+    c.execute('select * from subscribers where user_id=%s',(id,))
+    k=c.fetchall()
+    for j in k:
+        print(j)
+    validity_change(id)
+    
+def delete_user(id):
+    c.execute('delete from subscribers where user_id=%s',(id,))
+    print("Deleted successfully!")
+    db.commit()
+def netflix_plans():
+    c.execute("select * from netflix;")
+    k=c.fetchall()
+    for j in k:
+        print(j)
+def amazonprime_plans():
+    c.execute("select * from amazonprime;")
+    k=c.fetchall()
+    for j in k:
+        print(j)
+def validity_change(id):
+    x='select * from subscribers where user_id=%s'
+    c.execute(x,(id,))
+    for k in c.fetchall():
+        if k[3]=='netflix':
+            o='netflix'
+            c.execute('update subscribers set validity=date_add(validity,interval 1 month) where user_id=%s;',(id,))
+            db.commit()
+        elif  k[3].lower()=='amazonprime':
+            if k[4]=='monthly plan':
+                c.execute("update subscribers set validity = date_add(validity,interval 1 month) where validity is null and plan='monthly plan' and platform='amazonprime';")
+                db.commit()
+            elif k[4]=='yearly plan':
+                c.execute("update subscribers set validity = date_add(validity,interval 1 year) where validity is null and plan=' yearly plan' and platform='amazonprime';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(validity,interval 6 month) where validity is null and plan='quarterly plan' and platform='amazonprime';")
+                db.commit()
+        elif k[3].lower()=='hotstar':
+            if k[4]=='mobile':
+                c.execute("update subscribers set validity = date_add(validity,interval 1 month) where validity is null and plan='mobile' and platform='hotstar';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(validity,interval 1 year) where validity is null and  platform='hotstar';")
+                db.commit()
+        elif k[3]=='zee':
+            if k[4]=='month plan':
+                c.execute("update subscribers set validity = date_add(validity,interval 3 month) where validity is null and plan='month plan' and platform='zee';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(validity,interval 1 year) where validity is null and plan='year plan' and platform='zee';")
+                db.commit()
+            
+    
+def renew_acc(id):
+    print("\t\tYOUR ACCOUNT VALIDITY IS OVER/n\tDO YOU WANT TO RESTART YOUR ACCOUNT")
+    x=input("Enter yes/no")
+    if x.lower()=='yes':
+        view_previousplan(id)
+        print("DO YOU WANT TO CONTINUE THE SAME PLAN")
+        z=input("Enter y/n for continuation:")
+        if z.lower()=='n':
+            change_userplan(id)
+        else:
+            s='update subscribers set validity=date_add(validity,1 month)'
+            print("\tYour account successfully activated\nEnjoy your plan!!")
+            validity_change(id)
+    elif x.lower()=='no':
+        s1='delete from subscribers  where validity< (select curdate());'
+        c.execute(s1)
+        db.commit()
+        print("Your acccount is deleted")  
+def netflix_user():
+    print("\t\tWelcome to Netlix platform!!!")
+    print("\tMENU\n1.To Login\n2.New to Netlix? Sign in\n3.Exit")
+    while True:
+        ch=int(input("Enter the choice:NETFLIX"))
+        if ch==1:
+            print('')
+            print("To login please enter your user id password!!")
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            pd=input("Enter your password:")
+            s='select * from subscribers'
+            c.execute(s)
+            k=c.fetchall()
+            count=c.rowcount
+            for j in k:
+                if user_id in j:
+                    print("SUCCESSFULLY LOGIN!!!!")
+                    print("WELCOME TO NETFLIX")
+                    print("  ")
+                    print("\t\tMENU,\n1.See your previous plan details\n2.View netflix plans,\n3.Change your plan\n4.Delete your account\n5.Renew you account\n.6.Exit")
+                    while True:
+                        ch=int(input("Enter your choice:"))
+                        if ch==1:
+                            view_previousplan(user_id)
+                        elif ch==2:
+                            netflix_plans()
+                        elif ch==3:
+                            change_userplan(user_id)
+                        elif ch==4:
+                            delete_netflixuser(user_id)
+                        elif ch==5:
+                            renew_acc(user_id)
+                        elif ch==6:    
+                            print("EXITED FROM NETFLIX")
+                            break
+
+            else:
+                print("Something went wrong")
+        elif ch==2:
+            print("Lets get started!1\nTo create your netflix account please enter your user id and password!")
+            print(" ","\nStep 1/2")
+            o="netflix"
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            em=input("Enter your email id:")
+            pd=input("Enter your password:")
+            print("Step 2/2\nCHOOSE YOUR PLANS")
+            netflix_plans()
+            p=input("Which plan do you want to choose:")
+            c.execute("insert into subscribers(username,user_id,email_id,platform,plan) values(%s,%s,%s,%s,%s)",(name,user_id,em,o,p))
+            db.commit()
+            print("ACCOUNT CREATED SUCCESSFULLY")
+            
+          
+        elif ch==3:
+            print("Exited from netflix")
+            break   
+def amazonprime_user():
+    print("\t\tWelcome to Amazon Prime platform!!!")
+    print("\tMENU\n1.To Login\n2.New to Amazon prime? Sign in\n3.Exit")
+    while True:
+        ch=int(input("Enter the choice AMAZON PRIME:"))
+        if ch==1:
+            print('')
+            print("To login please enter your user id password!!")
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            pd=input("Enter your password:")
+            s='select * from subscribers'
+            c.execute(s)
+            k=c.fetchall()
+            count=c.rowcount
+            for j in k:
+                if user_id in j:
+                    print("SUCCESSFULLY LOGIN!!!!")
+                    print("WELCOME TO AMAZON PRIME!!!")
+                    print("\t\tMENU,\n1.See your previous plan details\n2.View amazon prime plans,\n3.Change your plan\n4.Delete your account\n5.Renew your account\n6.Exit")
+                    while True:
+                        ch=int(input("Enter your choice:"))
+                        if ch==1:
+                            view_previousplan(user_id)
+                        elif ch==2:
+                            amazonprime_plans()
+                        elif ch==3:
+                            change_userplan(user_id)
+                        elif ch==4:
+                            delete_user(user_id)
+                        elif ch==5:
+                            renew_acc(user_id)
+                        elif ch==6:
+                            print("EXITED FROM AMAZON PRIME")
+                            break
+        elif ch==2:
+             print("Lets get started!1\nTo create your amazon prime account please enter your user id and password!")
+             print(" ","\nStep 1/2")
+             o="amazonprime"
+             user_id=input("Enter your user id:")
+             name=input("Enter your name:")
+             em=input("Enter your email id:")
+             pd=input("Enter your password:")
+             print("Step 2/2\nCHOOSE YOUR PLANS")
+             amazonprime_plans()
+             p=input("Which plan do you want to choose:")
+             c.execute("insert into subscribers(username,user_id,email_id,platform,plan) values(%s,%s,%s,%s,%s)",(name,user_id,em,o,p))
+             db.commit()
+             print("ACCOUNT CREATED SUCCESSFULLY")
+        elif ch==3:
+            print("EXITING FROM AMAZONPRIME")
+            break
+        else:
+            print("Invalid choice")
+
+def hotstar_plans():
+    c.execute('select * from hotstar;')
+    for k in c.fetchall():
+        print(k)
+def hotstar_user():
+    print("\t\tWelcome to Hotstar platform!!!")
+    print("\tMENU\n1.To Login\n2.New to Hotstar? Sign in\n3.Exit")
+    while True:
+        ch=int(input("Enter the choice HOTSTAR:"))
+        if ch==1:
+            print('')
+            print("To login please enter your user id password!!")
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            pd=input("Enter your password:")
+            s='select * from subscribers'
+            c.execute(s)
+            k=c.fetchall()
+            count=c.rowcount
+            for j in k:
+                if user_id in j:
+                    print("SUCCESSFULLY LOGIN!!!!")
+                    print("WELCOME TO HOTSTAR!!!")
+                    print("\t\tMENU,\n1.See your previous plan details\n2.View hotstar plans,\n3.Change your plan\n4.Delete your account\n5.Renew your account\n6.Exit")
+                    while True:
+                        ch=int(input("Enter your choice-LOGIN:"))
+                        if ch==1:
+                            view_previousplan(user_id)
+                        elif ch==2:
+                            hotstar_plans()
+                        elif ch==3:
+                            change_userplan(user_id)
+                        elif ch==4:
+                            modify_subdetails(user_id)
+                        elif ch==4:
+                            delete_user(user_id)
+                        elif ch==5:
+                            renew_acc(user_id)
+                        elif ch==6:
+                            print("EXITED FROM HOTSTAR")
+                            break
+        elif ch==2:
+            print("Lets get started!1\nTo create your hotstar account please enter your user id and password!")
+            print(" ","\nStep 1/2")
+            o="hotstar"
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            em=input("Enter your email id:")
+            pd=input("Enter your password:")
+            print("Step 2/2\nCHOOSE YOUR PLANS")
+            hotstar_plans()
+            p=input("Which plan do you want to choose:")
+            c.execute("insert into subscribers(username,user_id,email_id,platform,plan) values(%s,%s,%s,%s,%s)",(name,user_id,em,o,p))
+            db.commit()
+            print("ACCOUNT CREATED SUCCESSFULLY")
+        elif ch==3:
+            print("EXITING FROM HOTSTAR")
+            break
+        else:
+            print("Invalid choice")
+def zee_plans():
+    c.execute('select * from zee;')
+    for k in c.fetchall():
+        print(k)
+def zee_user():
+    print("\t\tWelcome to Zee platform!!!")
+    print("\tMENU\n1.To Login\n2.New to Zee? Sign in\n3.Exit")
+    while True:
+        ch=int(input("Enter the choice ZEE:"))
+        if ch==1:
+            print('')
+            print("To login please enter your user id password!!")
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            pd=input("Enter your password:")
+            s='select * from subscribers'
+            c.execute(s)
+            k=c.fetchall()
+            count=c.rowcount
+            for j in k:
+                if user_id in j:
+                    print("SUCCESSFULLY LOGIN!!!!")
+                    print("WELCOME TO ZEE!!!")
+                    print("\t\tMENU,\n1.See your previous plan details\n2.View zee plans,\n3.Change your plan\n4.Delete your account\n5.Renew your account\n6.Exit")
+                    while True:
+                        ch=int(input("Enter your choice:"))
+                        if ch==1:
+                            view_previousplan(user_id)
+                        elif ch==2:
+                            zee_plans()
+                        elif ch==3:
+                            change_userplan(user_id)
+                        
+                        elif ch==4:
+                            delete_user(user_id)
+                        elif ch==5:
+                            renew_acc(id)
+                        elif ch==6:
+                            print("EXITING FROM ZEE ")
+                            break
+                        else:
+                            print("Invalid choice")
+                        
+        elif ch==2:
+            print("Lets get started!1\nTo create your hotstar account please enter your user id and password!")
+            print(" ","\nStep 1/2")
+            o="zee"
+            user_id=input("Enter your user id:")
+            name=input("Enter your name:")
+            em=input("Enter your email id:")
+            pd=input("Enter your password:")
+            print("Step 2/2\nCHOOSE YOUR PLANS")
+            zee_plans()
+            p=input("Which plan do you want to choose:")
+            c.execute("insert into subscribers(username,user_id,email_id,platform,plan) values(%s,%s,%s,%s,%s)",(name,user_id,em,o,p))
+            db.commit()
+            print("ACCOUNT CREATED SUCCESSFULLY")
+        elif ch==3:
+            print("EXITING FROM ZEE")
+            break
+        else:
+            print("Invalid choice")
+    
+def view_allsubscriber():
+    print("\1.CLICK 1 TO VIEW ALL OTT APPS SUBSCRIBER\n2.VIEW NETFLIX SUBSCRIBER\n3.VIEW AMAZON PRIME SUBSCRIBER\n4.VIEW HOTSTAR SUBSCRIBER\n5.VIEW ZEE SUBSCRIBER\n6.EXIT")
+    while True:
+        ch=int(input("Enter the choice (VIEW SUBS)"))
+        if ch==1:
+            c.execute('select * from subscribers')
+            k=c.fetchall()
+            for j in k:
+                print(j)
+        elif ch==2:
+            o="netflix"
+            c.execute('select * from subscribers where platform=%s',(o,))
+            k=c.fetchall()
+            for j in k:
+                print(j)
+        elif ch==3:
+            o="amazonprime"
+            c.execute('select * from subscribers where platform=%s',(o,))
+            k=c.fetchall()
+            for j in k:
+                print(j)
+        elif ch==4:
+            o="hotstar"
+            c.execute('select * from subscribers where platform=%s',(o,))
+            k=c.fetchall()
+            for j in k:
+                print(j)
+        elif ch==5:
+            o="zee"
+            c.execute('select * from subscribers where platform=%s',(o,))
+            k=c.fetchall()
+            for j in k:
+                print(j)
+        elif ch==6:
+            break
+        else:
+            print("Invalid choice")
+def expired_subscriber():
+    s=' select * from subscribers where validity< (select curdate());'
+    c.execute(s)
+    for k in c.fetchall():
+        print(k)
+        print("SWITCHED TO USER MODE\n\t PLEASE CLICK your respective platform choice and ch 5","your platform is:",k[3])
+        user()
+
+      
+    s1='delete from subscribers  where validity< (select curdate());'
+    c.execute(s1)
+    db.commit()
+    print("This record is deleted")
+def new_subscribervalidity():
+    s= 'select validity, plan,platform from subscribers;'
+    c.execute(s)
+    for k in c.fetchall():
+        if k[2].lower()=='netflix':
+            s1= "update subscribers set validity = date_add(curdate(),interval 1 month) where validity is null and platform='netflix';"
+            c.execute(s1)
+            db.commit()
+        elif  k[2].lower()=='amazonprime':
+            if k[1]=='monthly plan':
+                c.execute("update subscribers set validity = date_add(curdate(),interval 1 month) where validity is null and plan='monthly plan' and platform='amazonprime';")
+                db.commit()
+            elif k[1]=='yearly plan':
+                c.execute("update subscribers set validity = date_add(curdate(),interval 1 year) where validity is null and plan=' yearly plan' and platform='amazonprime';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(curdate(),interval 6 month) where validity is null and plan='quarterly plan' and platform='amazonprime';")
+                db.commit()
+        elif k[2].lower()=='hotstar':
+            if k[1]=='mobile':
+                c.execute("update subscribers set validity = date_add(curdate(),interval 1 month) where validity is null and plan='mobile' and platform='hotstar';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(curdate(),interval 1 year) where validity is null and  platform='hotstar';")
+                db.commit()
+        elif k[2]=='zee':
+            if k[1]=='month plan':
+                c.execute("update subscribers set validity = date_add(curdate(),interval 3 month) where validity is null and plan='month plan' and platform='zee';")
+                db.commit()
+            else:
+                c.execute("update subscribers set validity = date_add(curdate(),interval 1 year) where validity is null and plan='year plan' and platform='zee';")
+                db.commit()
+    print("Validity changed sucessfully")
+        
+def add_subscriber():
+    n=input("Enter the subscriber name:")
+    id=input("Enter user id:")
+    em=input("Enter the subscriber email id:")
+    ott=input("Enter subcriber of which ott?")
+    plans=input("Enter the subscriber plans:")
+    validity=input("Enter validity:")
+    sq='insert into subscribers values(%s,%s,%s,%s,%s,%s);'
+    c.execute(sq,(n,id,em,ott,plans,validity,))
+    db.commit()
+
+def delete_subscriber():
+    userid=input("Enter user id to be deleted:")
+    c.execute('delete from subscribers where user_id=%s;',(userid,))
+    db.commit()
+    print("Deleted successfully")
+def admin():
+    print("ADMIN")
+    print("\t\tMenu\n1.View all subscribers\n2.Update validity for new subscriber\n3.Delete the records whose validity date expired\n4.Add new subscriber\n5.Delete a subcriber\n6.Exit")
+    while True:
+        ch=int(input("Enter choice ADMIN:"))
+        if ch==1:
+            view_allsubscriber()
+        elif ch==2:
+            new_subscribervalidity()
+        elif ch==3:
+            expired_subscriber()
+        elif ch==4:
+            add_subscriber()
+        elif ch==5:
+            delete_subscriber()     
+        elif ch==6:
+            print("Exited from admin mode")
+            break
+def user():
+    print("""MENU
+      1.NETFLIX
+      2.AMAZON PRIME
+      3.HOTSTAR
+      4.ZEE
+      5.EXIT""")
+    while True:
+        ch=int(input("Enter choice:"))
+        if ch==1:
+            netflix_user()
+        elif ch==2:
+            amazonprime_user()
+        elif ch==3:
+            hotstar_user()
+        elif ch==4:
+            zee_user()
+        elif ch==5:
+            print("EXITED FROM USER MODE")
+            break
+        else:
+            print("Invalid choice")
+    
+print("\tARE YOU ADMIN OR USER\n1.ADMIN\n2.USER")
+while True:
+    ch=int(input("Enter choice:ADMIN/USER"))
+    if ch==1:
+        admin()
+    elif ch==2:
+        user()
+
+    elif ch==3:
+        print("THANK YOU")
+        break
+'''
+#SAMPLE OUTPUT        
+True
+	ARE YOU ADMIN OR USER
+1.ADMIN
+2.USER
+Enter choice:ADMIN/USER1
+ADMIN
+		Menu
+1.View all subscribers
+2.Update validity for new subscriber
+3.Delete the records whose validity date expired
+4.Add new subscriber
+5.Delete a subcriber
+6.Exit
+Enter choice ADMIN:1
+.CLICK 1 TO VIEW ALL OTT APPS SUBSCRIBER
+2.VIEW NETFLIX SUBSCRIBER
+3.VIEW AMAZON PRIME SUBSCRIBER
+4.VIEW HOTSTAR SUBSCRIBER
+5.VIEW ZEE SUBSCRIBER
+6.EXIT
+Enter the choice (VIEW SUBS)2
+('andrew', 'peter@18', 'andrew18@gmail.com', 'netflix', 'basic plan', datetime.date(2023, 1, 28))
+('dhars', 'ruby8', 'rubydhars@gmail.com', 'netflix', 'premium', datetime.date(2023, 1, 29))
+('wanda vision', 'vision01', 'wandavision12@gmail.com', 'netflix', 'standard plan', datetime.date(2023, 2, 2))
+('theja', 'theja09', 'thejame@gmail.com', 'netflix', 'standard plan', datetime.date(2023, 1, 29))
+('clark', 'henrey07', 'clarkhenry@gmail.com', 'netflix', 'standard plan', datetime.date(2022, 9, 20))
+('chris evans', 'chrischap', 'captainameria@gmail.com', 'netflix', 'mobile plan', datetime.date(2023, 2, 1))
+Enter the choice (VIEW SUBS)3
+('tobey', 'tobeykhan11', 'dvtobey@gmail.com', 'amazonprime', 'quarterly plan', datetime.date(2023, 1, 15))
+('loki', 'lokiverse', 'loki12verse@gmail.com', 'amazonprime', 'yearly plan', datetime.date(2023, 2, 28))
+('raksh', 'raku18', 'rak18@gmail.com', 'amazonprime', 'quarterly plan', datetime.date(2023, 6, 29))
+('bruce', 'hulkb', 'hulkdrbruce@gmail.com', 'amazonprime', 'monthly plan', datetime.date(2022, 2, 8))
+Enter the choice (VIEW SUBS)4
+('tom', 'tom07', 'tomholland@gmail.com', 'hotstar', 'premium', datetime.date(2023, 4, 1))
+('shang chi', 'shang', 'tenrings@gmail.com', 'hotstar', 'mobile', datetime.date(2022, 12, 26))
+('edrik', 'venom04', 'edvenom@gmail.com', 'hotstar', 'mobile', datetime.date(2023, 12, 29))
+('tony stark', 'ironman2', 'starkironman@gmail.com', 'hotstar', 'premium', datetime.date(2023, 5, 23))
+('jordan', '88jordan@', 'jordar8@gmail.com', 'hotstar', 'super', datetime.date(2024, 1, 1))
+Enter the choice (VIEW SUBS)5
+('groot ', 'grootsm', 'galaxygroot@gmail.com', 'zee', 'super', datetime.date(2023, 12, 29))
+('bobi', 'kbohi11', 'kahanbobi@gmail.com', 'zee', 'year plan', datetime.date(2022, 12, 1))
+('steve rogers', 'steve14', 'steve14@gmail.com', 'zee', 'month plan', datetime.date(2023, 4, 1))
+Enter the choice (VIEW SUBS)6
+Enter choice ADMIN:2
+Validity changed sucessfully
+Enter choice ADMIN:3
+('shang chi', 'shang', 'tenrings@gmail.com', 'hotstar', 'premium', datetime.date(2022, 12, 26))
+SWITCHED TO USER MODE
+	 PLEASE CLICK your respective platform choice and ch 5 your platform is: hotstar
+MENU
+      1.NETFLIX
+      2.AMAZON PRIME
+      3.HOTSTAR
+      4.ZEE
+      5.EXIT
+Enter choice:3
+		Welcome to Hotstar platform!!!
+	MENU
+1.To Login
+2.New to Hotstar? Sign in
+3.Exit
+Enter the choice HOTSTAR:1
+
+To login please enter your user id password!!
+Enter your user id:shang
+Enter your name:shang chi
+Enter your password:tenrings
+SUCCESSFULLY LOGIN!!!!
+WELCOME TO HOTSTAR!!!
+		MENU,
+1.See your previous plan details
+2.View hotstar plans,
+3.Change your plan
+4.Delete your account
+5.Renew your account
+6.Exit
+Enter your choice-LOGIN:5
+		YOUR ACCOUNT VALIDITY IS OVER/n	DO YOU WANT TO RESTART YOUR ACCOUNT
+Enter yes/noyes
+Your previous plan is: ('premium',)
+DO YOU WANT TO CONTINUE THE SAME PLAN
+Enter y/n for continuation:n
+Enter which plan you want to change:premium
+Successfully updated
+After updation
+('shang chi', 'shang', 'tenrings@gmail.com', 'hotstar', 'premium', datetime.date(2022, 12, 26))
+Enter your choice-LOGIN:6
+EXITED FROM HOTSTAR
+Enter the choice HOTSTAR:3
+EXITING FROM HOTSTAR
+Enter choice:5
+EXITED FROM USER MODE
+Enter choice ADMIN:4
+Enter the subscriber name:angela
+Enter user id:angele77
+Enter the subscriber email id:angelabasset@gmail.com
+Enter subcriber of which ott?amazonprime
+Enter the subscriber plans:monthly plan
+Enter validity:2023-02-01
+Enter choice ADMIN:5
+Enter user id to be deleted:raku18
+Deleted successfully
+Enter choice ADMIN:6
+Exited from admin mode
+Enter choice:ADMIN/USER2
+MENU
+      1.NETFLIX
+      2.AMAZON PRIME
+      3.HOTSTAR
+      4.ZEE
+      5.EXIT
+Enter choice:1
+		Welcome to Netlix platform!!!
+	MENU
+1.To Login
+2.New to Netlix? Sign in
+3.Exit
+Enter the choice:NETFLIX1
+
+To login please enter your user id password!!
+Enter your user id:peter@18
+Enter your name:andrew
+Enter your password:peterparker
+SUCCESSFULLY LOGIN!!!!
+WELCOME TO NETFLIX
+  
+		MENU,
+1.See your previous plan details
+2.View netflix plans,
+3.Change your plan
+4.Delete your account
+5.Renew you account
+.6.Exit
+Enter your choice:1
+Your previous plan is: ('basic plan',)
+Enter your choice:2
+('Mobile plan', 149, 1, 'MOBILE,TABLETS')
+('Basic plan', 199, 1, 'MOBILE,TABLETS,LAPTOP,TV')
+('Standard plan', 499, 2, 'MOBILE,TABLETS,LAPTOP,TV')
+('Premium', 649, 4, 'MOBILE,TABLETS,LAPTOP,TV')
+Enter your choice:3
+Enter which plan you want to change:mobile plan
+Successfully updated
+After updation
+('andrew', 'peter@18', 'andrew18@gmail.com', 'netflix', 'mobile plan', datetime.date(2023, 1, 28))
+Enter your choice:6
+EXITED FROM NETFLIX
+Enter the choice:NETFLIX3
+Exited from netflix
+Enter choice:2
+		Welcome to Amazon Prime platform!!!
+	MENU
+1.To Login
+2.New to Amazon prime? Sign in
+3.Exit
+Enter the choice AMAZON PRIME:1
+
+To login please enter your user id password!!
+Enter your user id:tobeykhan11
+Enter your name:tobey
+Enter your password:khan11
+SUCCESSFULLY LOGIN!!!!
+WELCOME TO AMAZON PRIME!!!
+		MENU,
+1.See your previous plan details
+2.View amazon prime plans,
+3.Change your plan
+4.Delete your account
+5.Renew your account
+6.Exit
+Enter your choice:1
+Your previous plan is: ('quarterly plan',)
+Enter your choice:2
+('monthly plan', 179, 'one month')
+('quarterly plan', 459, '3 month')
+('yearly plan', 1499, '1 year')
+Enter your choice:6
+EXITED FROM AMAZON PRIME
+Enter the choice AMAZON PRIME:2
+Lets get started!1
+To create your amazon prime account please enter your user id and password!
+  
+Step 1/2
+Enter your user id:gabriel33
+Enter your name:gabriel
+Enter your email id:gab33@gmail.com
+Enter your password:1233gab
+Step 2/2
+CHOOSE YOUR PLANS
+('monthly plan', 179, 'one month')
+('quarterly plan', 459, '3 month')
+('yearly plan', 1499, '1 year')
+Which plan do you want to choose:quarterly plan
+ACCOUNT CREATED SUCCESSFULLY
+Enter the choice AMAZON PRIME:3
+EXITING FROM AMAZONPRIME
+Enter choice:3
+		Welcome to Hotstar platform!!!
+	MENU
+1.To Login
+2.New to Hotstar? Sign in
+3.Exit
+Enter the choice HOTSTAR:1
+
+To login please enter your user id password!!
+Enter your user id:tom07
+Enter your name:tom
+Enter your password:sptom
+SUCCESSFULLY LOGIN!!!!
+WELCOME TO HOTSTAR!!!
+		MENU,
+1.See your previous plan details
+2.View hotstar plans,
+3.Change your plan
+4.Delete your account
+5.Renew your account
+6.Exit
+Enter your choice-LOGIN:1
+Your previous plan is: ('premium',)
+Enter your choice-LOGIN:2
+('Mobile', '149/3 months', 1, '4k')
+('Super', '899/year', 2, 'hd')
+('Premium ', '1499/year', 4, 'hd')
+Enter your choice-LOGIN:3
+Enter which plan you want to change:super
+Successfully updated
+After updation
+('tom', 'tom07', 'tomholland@gmail.com', 'hotstar', 'super', datetime.date(2023, 4, 1))
+Enter your choice-LOGIN:6
+EXITED FROM HOTSTAR
+Enter the choice HOTSTAR:3
+EXITING FROM HOTSTAR
+Enter choice:4
+		Welcome to Zee platform!!!
+	MENU
+1.To Login
+2.New to Zee? Sign in
+3.Exit
+Enter the choice ZEE:1
+
+To login please enter your user id password!!
+Enter your user id:steve14
+Enter your name:steve rogers
+Enter your password:roger14
+SUCCESSFULLY LOGIN!!!!
+WELCOME TO ZEE!!!
+		MENU,
+1.See your previous plan details
+2.View zee plans,
+3.Change your plan
+4.Delete your account
+5.Renew your account
+6.Exit
+Enter your choice:1
+Your previous plan is: ('month plan',)
+Enter your choice:2
+('Year plan', 499, '1 year', 3)
+('Month plan', 299, '3 month', 2)
+Enter your choice:6
+EXITING FROM ZEE 
+Enter the choice ZEE:2
+Lets get started!1
+To create your hotstar account please enter your user id and password!
+  
+Step 1/2
+Enter your user id:emily44
+Enter your name:emily
+Enter your email id:emily4407@gmail.com
+Enter your password:emil144
+Step 2/2
+CHOOSE YOUR PLANS
+('Year plan', 499, '1 year', 3)
+('Month plan', 299, '3 month', 2)
+Which plan do you want to choose:year plan
+ACCOUNT CREATED SUCCESSFULLY
+Enter the choice ZEE:3
+EXITING FROM ZEE
+Enter choice:5
+EXITED FROM USER MODE
+Enter choice:5
+EXITED FROM USER MODE
+Enter choice:ADMIN/USER3
+THANK YOU
+'''            
+    
+                    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
